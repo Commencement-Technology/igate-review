@@ -11,6 +11,7 @@ interface initialStateFields {
   isLoading: boolean;
   fileList: FileFields[] | [];
   fileDetail: FileDetailFields | null;
+  fileListData2: any;
   page: number;
   totalPages: number;
   error: boolean;
@@ -27,6 +28,7 @@ interface fileListParams extends fileDetailParams {
   agencyId: string;
   userId: string;
   ancestorId: string;
+  ratingId: string | undefined;
   //lấy thêm trường nào thì khai báo trong này.
 }
 //hàm lấy data trả về theo trạng thái hoàn thành của cá nhân
@@ -42,15 +44,41 @@ export const fileGetData = createAsyncThunk(
       const response = await requestGet(
         `pa/dossier/search?sort=updatedDate,desc&page=0&size=50&spec=page&identity-number=&applicant-name=&remind-id=&code=&sector-id=&procedure-id=&nation-id=&province-id=&district-id=&ward-id=&address=&task-status-id=60ebf17309cbf91d41f87f8e&dossier-status=&apply-method-id=&accepted-from=&accepted-to=&appointment-from=&appointment-to=&result-returned-from=&result-returned-to=&ancestor-agency-id=${fields.ancestorId}&task-assignee-id=${fields.userId}&last-task-assignee-id=${fields.userId}`,
         {
-          // params: fields,
-          //&task-assignee-id=${}
           needToken: true,
         },
       );
-      // console.log("response.data@@", response.data);
-      //console.log("res", response.data);
       console.log('FILL', fields);
       console.log('FILL__1', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.log('error', error);
+      if (error.response.status === 401) {
+        handleAlert({
+          message: 'Hết phiên đăng nhập, vui lòng đăng nhập lại',
+          onPress1: forceLogout,
+        });
+      }
+      return rejectWithValue(error);
+    }
+  },
+);
+// Ham tra ve trang thai hoan thanh moi nhat
+//hàm lấy data trả về theo trạng thái hoàn thành của cá nhân
+export const fileGetData2 = createAsyncThunk(
+  'file/get_list2',
+  async (fields: fileListParams, { rejectWithValue, dispatch }) => {
+    const forceLogout = () => {
+      dispatch(onLogout());
+    };
+    try {
+      const response = await requestGet(
+        `lo/history/--dossier-rating?rating-id=${fields.ratingId}&user-id=${fields.userId}&group-id=1&list-status=Đã trả kết quả`,
+        {
+          needToken: true,
+        },
+      );
+      console.log('FILL2', fields);
+      console.log('FILL_2', response.data);
       return response.data;
     } catch (error: any) {
       console.log('error', error);
@@ -98,6 +126,7 @@ const FileSlice = createSlice({
     isLoading: false,
     fileList: [],
     fileDetail: null,
+    fileListData2: null,
     totalPages: 0,
     error: false,
   } as initialStateFields,
@@ -144,6 +173,19 @@ const FileSlice = createSlice({
     });
     builder.addCase(fileGetDetail.rejected, (state) => {
       state.isLoading = false;
+      state.error = true;
+    });
+
+    // get file detail ver 2
+    builder.addCase(fileGetData2.pending, (state) => {
+      state.error = false;
+    });
+    builder.addCase(fileGetData2.fulfilled, (state, action) => {
+      //fulfil call thanh cong (syntax)
+      const data: any = action.payload;
+      state.fileListData2 = data;
+    });
+    builder.addCase(fileGetData2.rejected, (state) => {
       state.error = true;
     });
   },

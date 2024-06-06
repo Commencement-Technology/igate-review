@@ -77,7 +77,7 @@ export const rateGetData = createAsyncThunk(
         message:
           error.response.status === 401
             ? 'Hết phiên đăng nhập, vui lòng đăng nhập lại'
-            : 'Có lỗi xẩy ra',
+            : 'Có lỗi xảy ra',
         onPress1: error.response.status === 401 ? forceLogout : () => {},
       });
       return rejectWithValue(error);
@@ -104,7 +104,7 @@ export const rateOfficer = createAsyncThunk(
         message:
           error.response.status === 401
             ? 'Hết phiên đăng nhập, vui lòng đăng nhập lại'
-            : 'Có lỗi xẩy ra',
+            : 'Có lỗi xảy ra',
         onPress1: error.response.status === 401 ? forceLogout : () => {},
       });
       return rejectWithValue(error);
@@ -135,7 +135,7 @@ export const rateCheckFile = createAsyncThunk(
         message:
           error.response.status === 401
             ? 'Hết phiên đăng nhập, vui lòng đăng nhập lại'
-            : 'Có lỗi xẩy ra',
+            : 'Có lỗi xảy ra',
         onPress1: error.response.status === 401 ? forceLogout : () => {},
       });
       return rejectWithValue(error);

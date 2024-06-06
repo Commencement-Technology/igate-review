@@ -4,9 +4,10 @@ import {
   View,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import Modal from 'react-native-modal';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
 import Layout from '../../Themes/Layout';
 import { Header } from '../../Components/Headers';
 import { useAppSelector, useAppDispatch } from '../../Hooks/RTKHooks';
@@ -22,21 +23,31 @@ import {
 import { useIsFocused, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { fileGetData, fileGetDetail } from '../../Store/FileSlice';
+import {
+  fileGetData,
+  fileGetDetail,
+  fileGetData2,
+} from '../../Store/FileSlice';
 import { AppLoader } from '../../Components/Loaders';
 import { rateCheckFile } from '../../Store/RateSlice';
 import _ from 'lodash';
 import { rateGetData } from '../../Store/RateSlice';
+import { GetUserIMAGE, fileGetUSERIMG } from '../../Store/AuthSlice';
 type Props = {
   navigation: any;
 };
 const UserScreen = (props: Props) => {
   //gọi userdate là dữ liêụ lấy từ state auth về.
   const { userData, userCredential } = useAppSelector((state) => state.auth);
+  const { avatarDataIMG } = useAppSelector((state) => state.auth);
+  // const { userIMGData } = useAppSelector((state) => state.auth);
   const { isLoading: fileLoading } = useAppSelector((state) => state.files);
+  const [isloading, setIsloading] = useState<boolean>(true);
   const { data } = useAppSelector((state) => state.rate);
-  console.log('dataapapa', userData);
-  console.log('datahihu', data);
+  const [userImage, setUserImage] = useState('');
+  // console.log('dataapapa', userData);
+  // console.log('datahihu', data);
+  // console.log('imggg', userIMGData);
   const focus = useIsFocused();
   const route: any = useRoute();
 
@@ -45,8 +56,33 @@ const UserScreen = (props: Props) => {
   const [isShowAlert, setIsShowAlert] = useState(false);
 
   const onGetData = async (): Promise<void> => {
-    dispatch(rateGetData({ page: 0, size: 1, status: 1 })).unwrap();
+    dispatch(
+      rateGetData({ page: 0, size: 1, status: 1, spec: 'page' }),
+    ).unwrap();
   };
+  // const onGetIMG = async (): Promise<void> => {
+  //   dispatch(GetUserIMAGE({ avatarId: userData.avatarId })).unwrap();
+  // };
+  // console.log('anhtravess', userData.avatarId);
+
+  //VER02 LAY AVATAR
+  console.log('baba-->', avatarDataIMG);
+  const avatarId: any = userData.avatarId;
+  console.log('abcabcabc222', userData.avatarId);
+  const onGetIMGAVATAR = async (): Promise<void> => {
+    try {
+      setIsloading(true);
+      const response = await dispatch(fileGetUSERIMG({ avatarId })).unwrap();
+      setUserImage((pre) => response);
+      console.log('dataRP', response);
+      console.log('dataRP02', userImage);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsloading(false);
+    }
+  };
+  console.log('dataRP03', userImage);
   // console.log("dữ liệu userData", userData, userCredential);
   //lấy dữ liệu ở màn hình user về.
   const onGetFileList = async (reload?: boolean): Promise<void> => {
@@ -65,6 +101,7 @@ const UserScreen = (props: Props) => {
         ancestorId: userData.experience[0].agency.parent.id
           ? userData.experience[0].agency.parent.id
           : userData.experience[0].agency.ancestors[0].id, // cua hue null
+        ratingId: userData.user_id,
         //cần call trường nào thì từ màn user -> đẩy những thông tin cần thiết vô file slice để gọi api
       }),
     ).unwrap();
@@ -120,6 +157,73 @@ const UserScreen = (props: Props) => {
     }
   };
 
+  const onGetFileList2 = async (reload?: boolean): Promise<void> => {
+    //Hàm lấy dữ liệu toàn bộ hồ sơ (trạng thái trả kết quả) của Cán Bộ.
+    console.log('@@', userData);
+    console.log('@@1', data);
+    const response = await dispatch(
+      fileGetData2({
+        userId: userData.id,
+        ratingId:
+          data?.id !== undefined ? data?.id : '62938a32e989a810d0f7583f', // dangbinull
+        //không sử dụng mấy file ở dưới
+        'user-id': '',
+        agencyId: '',
+        ancestorId: '',
+        // 'user-id': userData.user_id,
+        // agencyId: userData.experience[0].agency.id,
+        // ancestorId: userData.experience[0].agency.parent.id
+        //   ? userData.experience[0].agency.parent.id
+        //   : userData.experience[0].agency.ancestors[0].id,
+      }),
+    ).unwrap();
+    if (response.code !== null) {
+      props.navigation.navigate('RatingScreen');
+    }
+    console.log('hoann', response);
+    // const fileDetail = await dispatch(
+    //   fileGetDetail({ code: response.content[0].code }),
+    // ).unwrap();
+    // Check hồ sơ đã đánh giá hay chưa
+    //logic -> nếu chi tiết hồ sơ có tồn tại content -> truyền vào params -> nếu content > 0 đã có đánh giá rồi.
+    //nếu rỗng -> cho qua màn đánh giá.
+    // if (
+    //   route.params?.item &&
+    //   _.isEqual(fileDetail.content[0], route.params?.item)
+    // ) {
+    //   //nếu user không đánh giá trong vòng 15s thì sẽ kiểm tra hồ sơ, nếu ko có hồ sơ mới thì ko qua đánh giá
+    //   return;
+    // }
+    // console.log('tontaidetail', fileDetail);
+    // if (fileDetail) {
+    //   console.log(
+    //     'offficerid',
+    //     fileDetail.content[0].task[fileDetail.content[0].task.length - 1]
+    //       .assignee.id,
+    //   );
+    //   console.log('code_id', fileDetail.content[0]?.code);
+    //   const fileCheck = await dispatch(
+    //     rateCheckFile({
+    //       //new
+    //       'rating-id': data?.id, //true
+    //       // 'rating-id': fileDetail.content[0]?.id,
+    //       'officer-id':
+    //         fileDetail.content[0]?.task[fileDetail.content[0].task.length - 1]
+    //           .assignee.id, //true
+    //       'dossier-id': fileDetail.content[0]?.code, //true
+    //     }),
+    //   ).unwrap();
+    //   console.log('chay vao day ...');
+    //   if (fileCheck.content.length > 0) {
+    //     console.log('chay vao day ___');
+    //     setIsShowAlert(true);
+    //   } else {
+    //     props.navigation.navigate('RatingScreen');
+    //     console.log('chay vao day ***');
+    //   }
+    // }
+  };
+
   const onLogout = (): void => {
     Alert.alert('Thông báo', 'Bạn có muốn đăng xuất không?', [
       {
@@ -141,6 +245,7 @@ const UserScreen = (props: Props) => {
     if (focus) {
       interval = setInterval(() => {
         onGetToken();
+        // onGetIMGAVATAR();
       }, 5 * 60 * 1000);
       // onGetToken();
     }
@@ -151,16 +256,21 @@ const UserScreen = (props: Props) => {
     if (focus) {
       let interval: any;
       interval = setInterval(() => {
-        onGetFileList();
+        // onGetFileList();
+        onGetFileList2();
         onGetData();
-      }, 5 * 1000);
+        // onGetIMG();
+        //onGetIMGAVATAR();
+      }, 7 * 1000);
       return () => clearInterval(interval);
     }
   }, [focus]);
-  // useEffect(() => {
-  //   onGetFileList();
-  // }, []);
 
+  useEffect(() => {
+    onGetIMGAVATAR();
+  }, [userData]);
+
+  console.log('usoimage', userImage);
   return (
     <View style={[Layout.fill]}>
       {/* <Header
@@ -181,11 +291,23 @@ const UserScreen = (props: Props) => {
         <View style={[Layout.fill, styles.container]}>
           <View style={[styles.user, Layout.shadow]}>
             <View style={[styles.avatar, Layout.center]}>
-              <FontAwesome name='user' size={kScaledSize(40)} />
+              {/* <FontAwesome name='user' size={kScaledSize(40)} /> */}
+              {userImage ? (
+                <Image
+                  style={styles.tinyLogo}
+                  source={{
+                    //uri: `https://apiigate.quangngai.gov.vn/fi/file/${userData.avatarId}`,
+                    uri: `${String(userImage)}`,
+                    //userImage STATE
+                  }}
+                />
+              ) : (
+                <FontAwesome name='user' size={kScaledSize(40)} />
+              )}
             </View>
             <View style={styles.info}>
               <View style={[styles.detail]}>
-                <RegularText>Người tiếp nhận hồ sơ và kết quả</RegularText>
+                <RegularText>Công chức TN và TKQ hồ sơ:</RegularText>
                 <MediumText>{userData.fullname}</MediumText>
               </View>
               {/**email */}
@@ -196,7 +318,7 @@ const UserScreen = (props: Props) => {
                   {userData.email.length > 0 ? userData.email[0].value : ''}
                 </MediumText>
               </View>
-              {/* {userData.experience[0].primary && (
+              {userData.experience[0].primary && (
                 <View style={[styles.detail]}>
                   <RegularText>Cơ quan: </RegularText>
                   <MediumText>
@@ -205,7 +327,7 @@ const UserScreen = (props: Props) => {
                       : ''}
                   </MediumText>
                 </View>
-              )} */}
+              )}
               <View style={[Layout.rowBetween]}>
                 <MediumText>Đăng xuất</MediumText>
                 <TouchableOpacity onPress={onLogout}>
@@ -340,4 +462,8 @@ const styles = StyleSheet.create({
     fontSize: kScaledSize(20),
   },
   message: { textAlign: 'center' },
+  tinyLogo: {
+    width: 80,
+    height: 95,
+  },
 });

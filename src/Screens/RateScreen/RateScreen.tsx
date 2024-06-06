@@ -69,6 +69,7 @@ const RateScreen: React.FC = () => {
 
   const {
     fileList,
+    fileListData2,
     isLoading: fileLoading,
     totalPages,
   } = useAppSelector((state) => state.files);
@@ -99,9 +100,10 @@ const RateScreen: React.FC = () => {
         agencyId: userData.experience[0].agency.id,
         //thêm trường ancestor thay trường agency
         ancestorId: userData.experience[0].agency.parent.id,
+        ratingId: data?.id,
       }),
     ).unwrap();
-    console.log('..user..', userData);
+    console.log('USERDATA', userData);
     // const latestItem = response.content.reduce(
     //   (
     //     a: { completedDate: string | number | Date },
@@ -138,33 +140,7 @@ const RateScreen: React.FC = () => {
   };
 
   const onRating = async (answerTypeId: number): Promise<void> => {
-    // if (fileDetail && data) {
-    //   console.log("detail =>>", fileDetail);
-    //   console.log("data =>>", data);
-    //   const fileCheck = await dispatch(
-    //     rateCheckFile({
-    //       "rating-id": data?.id, //true
-    //       "officer-id":
-    //         fileDetail?.task[fileDetail.task.length - 1].assignee.id, //true
-    //       "dossier-id": fileDetail?.code, //true
-    //       //file cũ sai
-    //       // "rating-id": fileDetail?.id,//false
-    //       // "officer-id": fileDetail?.applicant.userId,//false
-    //       // "dossier-id": fileDetail?.code,//true
-    //     }),
-    //   ).unwrap();
-    //   console.log("filechec ->", fileCheck);
-    //   if (fileCheck.content.length > 0) {
-    //     handleAlert({
-    //       message: "Hồ sơ này đã được đánh giá",
-    //       onPress1: () => {
-    //         navigation.navigate("UserScreen", { item: undefined });
-    //       },
-    //     });
-
-    //     return;
-    //   }
-    // }
+    console.log('AHUHU', fileListData2);
 
     let formatAnswer: Array<any> = [];
     // console.log('selectAnswer câu hỏi@@', selectAnswer);
@@ -177,40 +153,36 @@ const RateScreen: React.FC = () => {
     // console.log('questiondata', questionData);
     let body: rateOfficerParams;
     if (data) {
-      // console.log('date post lên', data);
+      console.log('datadata', data);
       body = {
         formData: {
-          participantName: fileDetail?.applicant.data.fullname,
-          identityNumber: fileDetail?.applicant.data.identityNumber,
-          profileNumber: fileDetail?.code,
+          participantName: fileListData2?.fullName,
+          identityNumber: fileListData2?.numberCard,
+          profileNumber: fileListData2?.code,
         },
         ratingOfficer: {
-          id: data?.id,
+          id: data?.id !== undefined ? data?.id : '62938a32e989a810d0f7583f',
           name: data?.name,
-          //new post
-          // name: [
-          //   {
-          //     languageId: data[0]?.languageId,
-          //     name: data[0]?.name,
-          //   },
-          // ],
           agency: {
-            id: fileDetail?.agency.id,
+            id:
+              userData?.experience[0].primary === true
+                ? userData?.experience[0].agency.id
+                : '',
+            // id: data?.experience[0].primary === true ? data.experience[0]
           },
           userGroup: data?.userGroup,
           startDate: data?.startDate,
           endDate: data?.endDate,
         },
         officer: {
-          // id: fileDetail?.task[0].assignee.id,
-          // name: fileDetail?.task[0].assignee.fullname,
-          id: fileDetail?.task[fileDetail.task.length - 1].assignee.id,
-          name: fileDetail?.task[fileDetail.task.length - 1].assignee.fullname,
+          id: userData?.id,
+          name: userData?.fullname,
+          // id: fileDetail?.task[fileDetail.task.length - 1].assignee.id,
+          // name: fileDetail?.task[fileDetail.task.length - 1].assignee.fullname,
         },
         detail: [
           {
             answer: formatAnswer,
-            // status: questionData?.status,
             status: 1,
             question: {
               id: questionData?.id,
@@ -263,7 +235,8 @@ const RateScreen: React.FC = () => {
   useEffect(() => {
     timeout = setTimeout(() => {
       console.log('still run');
-      navigation.navigate('UserScreen', { item: fileDetail });
+      // navigation.navigate('UserScreen', { item: fileDetail });
+      navigation.navigate('UserScreen');
     }, 15 * 1000);
     return () => clearTimeout(timeout);
   }, []);
@@ -276,57 +249,16 @@ const RateScreen: React.FC = () => {
     return () => backHandler.remove();
   }, []);
   // console.log('file dsss', fileDetail);
+  console.log('AHUHU', fileListData2);
+  console.log('AHUHUdata', data);
+  console.log('USERDATA', userData);
   return (
     <View style={[Layout.fill]}>
       <Header name='ĐÁNH GIÁ ĐỘ HÀI LÒNG' />
-      {(isLoading || fileLoading) && <AppLoader />}
-      {fileList.length > 0 && fileDetail !== null && !error ? (
+      {/* {(isLoading || fileLoading) && <AppLoader />} */}
+      {fileListData2 && !error ? (
         <>
           <ScrollView contentContainerStyle={styles.scrollContainer}>
-            {/* <View
-              style={[
-                styles.officer,
-                {
-                  marginTop: kSpacing.kSpacing5,
-                  marginBottom: kSpacing.kSpacing5,
-                },
-              ]}
-            >
-              <View style={[Layout.rowBetween, styles.mb]}>
-                <RegularText>Cán bộ</RegularText>
-                <MediumText style={styles.name}>
-                  {
-                    fileDetail.task[fileDetail.task.length - 1].assignee
-                      .fullname
-                  }
-                </MediumText>
-              </View>
-              <View style={[Layout.rowBetween, styles.mb]}>
-                <RegularText>Đơn vị</RegularText>
-                <MediumText style={styles.detail}>
-                  {fileDetail.agency.name}
-                </MediumText>
-              </View>
-            </View>
-            <View style={styles.officer}>
-              <View style={[Layout.rowBetween, styles.mb]}>
-                <RegularText>Người đánh giá</RegularText>
-                <MediumText style={styles.detail}>
-                  {fileDetail.applicant.data.fullname}
-                </MediumText>
-              </View>
-              <View style={[Layout.rowBetween, styles.mb]}>
-                <RegularText>CMND</RegularText>
-                <MediumText style={styles.detail}>
-                  {fileDetail.applicant.data.identityNumber}
-                </MediumText>
-              </View>
-              <View style={[Layout.rowBetween, styles.mb]}>
-                <RegularText>Mã hồ sơ</RegularText>
-                <MediumText style={styles.detail}>{fileDetail.code}</MediumText>
-              </View>
-            </View> */}
-
             {/**test show hồ sơ*/}
             <View
               style={[
@@ -339,7 +271,9 @@ const RateScreen: React.FC = () => {
               ]}
             >
               <RegularText>Mã hồ sơ</RegularText>
-              <MediumText style={styles.detail}>{fileDetail.code}</MediumText>
+              <MediumText style={styles.detail}>
+                {fileListData2 && fileListData2?.code}
+              </MediumText>
             </View>
             <View
               style={{
